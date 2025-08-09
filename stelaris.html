@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Estrellita</title>
+<style>
+  body {
+    margin: 0;
+    overflow: hidden;
+    background-color: black;
+    font-family: 'Courier New', monospace;
+    color: #aee6ff;
+  }
+  #overlay {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: radial-gradient(ellipse at center, rgba(10,20,40,0.95) 0%, rgba(0,0,0,0.95) 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    z-index: 10;
+    text-align: center;
+    padding: 20px;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .particle {
+    position: absolute;
+    background: rgba(174,230,255,0.8);
+    border-radius: 50%;
+    opacity: 0;
+    animation: floatUp 5s infinite;
+  }
+  @keyframes floatUp {
+    0% { transform: translateY(100%); opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100% { transform: translateY(-100%); opacity: 0; }
+  }
+  #startBtn {
+    margin-top: 20px;
+    padding: 12px 26px;
+    background: #aee6ff;
+    color: black;
+    border: none;
+    cursor: pointer;
+    font-size: 1.1em;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(174,230,255,0.6);
+    transition: background 0.3s, transform 0.3s;
+  }
+  #startBtn:hover {
+    background: #d2f2ff;
+    transform: scale(1.05);
+  }
+  .intro-line {
+    margin: 8px 0;
+    font-size: 1.05em;
+    color: #aee6ff;
+    text-shadow: 0 0 6px rgba(174,230,255,0.6), 0 0 12px rgba(174,230,255,0.3);
+    opacity: 0;
+    animation: fadeInText 1s forwards;
+  }
+  @keyframes fadeInText {
+    from { opacity: 0; filter: blur(4px); }
+    to { opacity: 1; filter: blur(0); }
+  }
+  #centerPhrase {
+    position: absolute;
+    top: 10%;
+    width: 100%;
+    text-align: center;
+    font-size: 1.6em;
+    color: #aee6ff;
+    text-shadow: 0 0 8px rgba(174,230,255,0.8), 0 0 15px rgba(174,230,255,0.4);
+    opacity: 0;
+    transition: opacity 2s;
+    z-index: 5;
+  }
+  #message {
+    position: absolute;
+    bottom: 30px;
+    width: 100%;
+    text-align: center;
+    font-size: 1.2em;
+    color: #aee6ff;
+    text-shadow: 0 0 8px rgba(174,230,255,0.7);
+    opacity: 0;
+    transition: opacity 2s;
+    z-index: 5;
+  }
+</style>
+</head>
+<body>
+
+<div id="overlay">
+  <div id="introText"></div>
+  <button id="startBtn" style="display:none;">Ver el cielo</button>
+</div>
+
+<div id="centerPhrase">Llevo enamorado de ti desde el primer día</div>
+<div id="message">1 de mayo de 2025 — Granada (Lat: 37.168461 | Lon: -3.604725) ✨</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+
+<script>
+  // Datos
+  const frase = "Llevo enamorado de ti desde el primer día";
+  const fecha = "1 de Mayo de 2025";
+  const coordenadas = { lat: 37.168461, lon: -3.604725 };
+  const introLines = [
+    "Consultando base de datos estelar...",
+    `Coordenadas: Granada — Lat: ${coordenadas.lat} | Lon: ${coordenadas.lon}`,
+    `Fecha señalada: ${fecha}`,
+    "Bajo este cielo nos encontramos, cumplimos nuestro primer deseo:",
+    "Tenernos el uno al otro, ser felices, vivir aventuras",
+    "Para que algún día, nuestros recuerdos acaben en el firmamento"
+  ];
+
+  // Partículas flotantes en overlay
+  function createParticles() {
+    for (let i = 0; i < 20; i++) {
+      const p = document.createElement('div');
+      p.className = 'particle';
+      const size = Math.random() * 4 + 2;
+      p.style.width = `${size}px`;
+      p.style.height = `${size}px`;
+      p.style.left = `${Math.random() * 100}%`;
+      p.style.top = `${Math.random() * 100}%`;
+      p.style.animationDelay = `${Math.random() * 5}s`;
+      document.getElementById('overlay').appendChild(p);
+    }
+  }
+  createParticles();
+
+  // Animación tipo máquina de escribir
+  let lineIndex = 0;
+  const introText = document.getElementById('introText');
+  const startBtn = document.getElementById('startBtn');
+
+  function typeLine() {
+    if (lineIndex < introLines.length) {
+      let line = introLines[lineIndex];
+      let charIndex = 0;
+      let lineDiv = document.createElement("div");
+      lineDiv.className = "intro-line";
+      introText.appendChild(lineDiv);
+      let typing = setInterval(() => {
+        lineDiv.textContent = line.slice(0, charIndex++);
+        if (charIndex > line.length) {
+          clearInterval(typing);
+          lineIndex++;
+          setTimeout(typeLine, 700);
+        }
+      }, 45);
+    } else {
+      startBtn.style.display = "inline-block";
+    }
+  }
+  typeLine();
+
+  // --- Cielo 3D ---
+  let scene, camera, renderer, starField;
+  let shootingStars = [];
+  let lastTime = 0;
+  let starTimer = 0;
+
+  function initSky() {
+    scene = new THREE.Scene();
+    camera = new THREE.PerspectiveCamera(60, window.innerWidth/window.innerHeight, 0.1, 5000);
+    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+    renderer.setPixelRatio(window.devicePixelRatio);
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    document.body.appendChild(renderer.domElement);
+
+    camera.position.z = 1;
+
+    const starCount = 5000;
+    const positions = new Float32Array(starCount * 3);
+    for (let i = 0; i < starCount; i++) {
+      positions[i*3] = (Math.random() - 0.5) * 2000;
+      positions[i*3+1] = (Math.random() - 0.5) * 2000;
+      positions[i*3+2] = (Math.random() - 0.5) * 2000;
+    }
+    const geometry = new THREE.BufferGeometry();
+    geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+    const material = new THREE.PointsMaterial({ color: 0xaee6ff, size: 1, transparent: true });
+    starField = new THREE.Points(geometry, material);
+    scene.add(starField);
+  }
+
+  // Crear estrella fugaz
+  function createShootingStar() {
+    const length = Math.random() * 50 + 50;
+    const geometry = new THREE.BufferGeometry().setFromPoints([
+      new THREE.Vector3(0, 0, 0),
+      new THREE.Vector3(length, 0, 0)
+    ]);
+    const material = new THREE.LineBasicMaterial({ color: 0xaee6ff, transparent: true, opacity: 0.8 });
+    const star = new THREE.Line(geometry, material);
+
+    star.position.x = (Math.random() - 0.5) * 2000;
+    star.position.y = (Math.random() - 0.5) * 2000;
+    star.position.z = (Math.random() - 0.5) * 2000;
+
+    const dirX = -(Math.random() * 2 + 1);
+    const dirY = -(Math.random() * 1 + 0.5);
+    shootingStars.push({ mesh: star, vel: { x: dirX, y: dirY }, life: 1.0 });
+
+    scene.add(star);
+  }
+
+  function updateShootingStars(dt) {
+    for (let i = shootingStars.length - 1; i >= 0; i--) {
+      const s = shootingStars[i];
+      s.mesh.position.x += s.vel.x * 100 * dt;
+      s.mesh.position.y += s.vel.y * 100 * dt;
+      s.life -= dt * 0.5;
+      s.mesh.material.opacity = s.life;
+      if (s.life <= 0) {
+        scene.remove(s.mesh);
+        shootingStars.splice(i, 1);
+      }
+    }
+  }
+
+  function animateSky(time) {
+    requestAnimationFrame(animateSky);
+    const dt = (time - lastTime) * 0.001;
+    lastTime = time;
+
+    scene.rotation.y += 0.0005;
+
+    // generar estrellas fugaces
+    starTimer -= dt;
+    if (starTimer <= 0) {
+      createShootingStar();
+      starTimer = Math.random() * 4 + 2;
+    }
+    updateShootingStars(dt);
+
+    renderer.render(scene, camera);
+  }
+
+  startBtn.addEventListener('click', () => {
+    document.getElementById('overlay').style.transition = "opacity 2s";
+    document.getElementById('overlay').style.opacity = 0;
+    setTimeout(() => { document.getElementById('overlay').style.display = 'none'; }, 2000);
+    initSky();
+    animateSky();
+    setTimeout(() => {
+      document.getElementById('centerPhrase').style.opacity = 1;
+    }, 1500);
+    setTimeout(() => {
+      document.getElementById('message').style.opacity = 1;
+    }, 3500);
+  });
+
+  window.addEventListener('resize', () => {
+    if (camera && renderer) {
+      camera.aspect = window.innerWidth / window.innerHeight;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    }
+  });
+</script>
+
+</body>
+</html>
